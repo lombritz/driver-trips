@@ -8,23 +8,9 @@ import com.gargoylesoftware.htmlunit.{BrowserVersion, WebClient, WebClientOption
 import org.apache.commons.logging.LogFactory
 
 /**
-  * @author Jaime Rojas
-  * @date 5/11/2016
-  */
-class DriverTrips {
-  def getTrips: Seq[Trip] = {
-    val browser = new WebClient(BrowserVersion.CHROME)
-    var partnerLogin: HtmlPage = browser.getPage("https://login.uber.com/login")
-    partnerLogin = partnerLogin.getElementById("email").asInstanceOf[HtmlInput].setValueAttribute("ubersti2@gmail.com").asInstanceOf[HtmlPage]
-    partnerLogin = partnerLogin.getElementById("password").asInstanceOf[HtmlInput].setValueAttribute("Ubersti234").asInstanceOf[HtmlPage]
-    val submitBtn: HtmlButton = partnerLogin.getElementsByTagName("button").asInstanceOf[HtmlButton]
-    val homePage: HtmlPage = submitBtn.click()
-    val tripsTable = homePage.getElementsByTagName("table").get(1).asInstanceOf[HtmlTable]
-    println(tripsTable.toString)
-    Seq()
-  }
-}
-
+ * @author Jaime Rojas
+ * @date 5/11/2016
+ */
 case class Trip(time: LocalDateTime, driver: String, duration: Long, kilometers: Double, fare: Double, status: String)
 
 object Main {
