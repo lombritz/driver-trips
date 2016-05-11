@@ -18,8 +18,7 @@ object Main {
   val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy h[:mm]a z")
 
   def main(args: Array[String]) {
-    import Credentials._
-    printTripsTable(enterUberPartner(EMAIL, PASSWORD))
+    printTripsTable(enterUberPartner(args(0), args(1)))
   }
 
   def printTripsTable(uberPartnerPage: HtmlPage): Option[HtmlButton] = {
