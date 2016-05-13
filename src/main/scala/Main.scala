@@ -1,5 +1,5 @@
 
-import java.time.{Duration, LocalDate, LocalDateTime}
+import java.time.{Duration, LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.logging.Level
@@ -19,14 +19,14 @@ import scala.util.Try
 case class Trip(time: LocalDateTime, driver: String, duration: Duration, kilometers: Double, fare: Double, status: String)
 
 object Main {
-  val inputDateFormatter =  DateTimeFormatter.ofPattern("yyyyMMdd")
+  val inputDateFormatter =  DateTimeFormatter.ofPattern("yyyyMMdd'T'HH:mm:ss'TZ'z")
   val uberDateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy h[:mm]a z")
 
   def main(args: Array[String]) {
     val start = LocalDateTime.now()
     val uberPartnerHomePage = enterUberPartner(args(0), args(1))
-    val fromDate = LocalDate.parse(args(2), inputDateFormatter)
-    val allTrips = loadTrips(uberPartnerHomePage, fromDate.atStartOfDay())
+    val fromDate = LocalDateTime.from(inputDateFormatter.parse(args(2)))
+    val allTrips = loadTrips(uberPartnerHomePage, fromDate)
 
     implicit def localDateTimeComparator = Ordering.fromLessThan[LocalDateTime]((d1, d2) => d1.compareTo(d2) < 0)
     implicit def timeOrdering = Ordering.by((_: Trip).time)
@@ -43,8 +43,9 @@ object Main {
     println(
 raw"""
 trips: ${allTrips.size},
-from: ${times.min},
-to: ${times.max},
+fromDateTime: $fromDate,
+firstTrip: ${Try(times.min).getOrElse("")},
+lastTrip: ${Try(times.max).getOrElse("")},
 avgKilometers: $avgKilometers,
 totalKilometers: $totalKilometers,
 avgDuration: $avgDuration,
@@ -54,10 +55,11 @@ totalFare: DOP $totalFare
 """)
     val end = LocalDateTime.now()
 
-    val minutes = ChronoUnit.MINUTES.between(start, end)
-    val seconds = ChronoUnit.SECONDS.between(start, end) - (minutes * 60)
+    val allSeconds = ChronoUnit.SECONDS.between(start, end)
+    val minutes = allSeconds / 60
+    val seconds = allSeconds % 60
 
-    println(s"Duration: $minutes m $seconds s")
+    println(s"execution time: ${minutes}m ${seconds}s")
   }
 
   def loadTrips(uberPartnerPage: HtmlPage, from: LocalDateTime): Seq[Trip] = {
@@ -68,7 +70,8 @@ totalFare: DOP $totalFare
           rawPageTrips match {
             case Nil => trips
             case xs: Seq[Trip] =>
-              xs.filter (_.time.isAfter(from)) match {
+              // FIXME: time filtering (~8 hours difference).
+              xs.filter (t => t.time.toEpochSecond(ZoneOffset.UTC) > from.toEpochSecond(ZoneOffset.UTC)) match {
                 case fs: Seq[Trip] if fs.size < xs.size => trips ++ fs
                 case _ => loadTripsHelper(btn.click(), trips ++ xs)
               }
@@ -123,7 +126,7 @@ totalFare: DOP $totalFare
                 htmlRow.getCells.get(5).asText()
               )
             }
-            pageTrips
+            pageTrips.filter(_.status == "Completed")
           } else Nil
         case _ => Nil
       }
