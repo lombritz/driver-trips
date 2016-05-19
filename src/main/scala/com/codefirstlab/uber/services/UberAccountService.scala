@@ -1,8 +1,8 @@
 package com.codefirstlab.uber.services
 
 import java.time.{Duration, LocalDateTime, ZoneOffset}
-import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 import java.util.logging.Level
 
 import com.codefirstlab.uber.models.Trip
@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
+import scala.xml.XML
 
 /**
   * Created by jaime on 5/15/16.
@@ -80,7 +81,10 @@ class UberAccountService(val email: String, val password: String) {
             val pageTrips = ArrayBuffer.empty[Trip]
             rows.subList(0, rows.size - 1).toArray.foreach { row =>
               val htmlRow = row.asInstanceOf[HtmlTableRow]
+              val timeLinkXML = XML.loadString(htmlRow.getCells.get(0).asXml())
+              val uuid = UUID.fromString((timeLinkXML \\ "a" \ "@href").text.split("/").last)
               pageTrips += Trip(
+                uuid,
                 LocalDateTime.parse(htmlRow.getCells.get(0).asText(), uberDateFormatter),
                 htmlRow.getCells.get(1).asText(),
                 Duration.ofSeconds(timeInSeconds(htmlRow.getCells.get(2).asText().split(":"))),
@@ -89,6 +93,7 @@ class UberAccountService(val email: String, val password: String) {
                 htmlRow.getCells.get(5).asText()
               )
             }
+            println(pageTrips)
             pageTrips.filter(_.status == "Completed")
           } else Nil
         case _ => Nil

@@ -17,7 +17,7 @@ class UberAccountServiceSpec extends FlatSpec {
   "A UberAccountService" should "get a Seq of all trips from a specific date" in {
 
     val start = LocalDateTime.now()
-    val from = LocalDateTime.now().minus(15, ChronoUnit.DAYS)
+    val from = LocalDateTime.of(2016, 5, 16, 4, 0)
 
     val service = new UberAccountService("ubersti2@gmail.com", "Ubersti234")
     val allTrips = service.allTrips(from)
@@ -32,6 +32,7 @@ class UberAccountServiceSpec extends FlatSpec {
     val totalKilometers = allTrips.foldRight(0.0)((t, sum) => t.kilometers + sum)
     val totalDuration = allTrips.foldRight(0L)((t, sum) => t.duration.getSeconds + sum)
     val totalFare = allTrips.foldRight(0.0)((t, sum) => t.fare + sum)
+    val uberFee = totalFare * 0.25
 
     val avgKilometers = totalKilometers / tripsNo
     val avgDuration = totalDuration / tripsNo
@@ -59,7 +60,9 @@ Avg. Duration:      ${Duration.ofSeconds(avgDuration.toLong)}
 Avg. Fare:          DOP ${formatter.format(avgFare)}
 Total Kilometers:   ${formatter.format(totalKilometers)} KM
 Total Duration:     ${Duration.ofSeconds(totalDuration.toLong)}
-Total Fare:         DOP ${formatter.format(totalFare)}
+Total Gross Fare:   DOP ${formatter.format(totalFare)}
+Uber Fee (25%):     DOP ${formatter.format(uberFee)}
+Total Net Fare:     DOP ${formatter.format(totalFare - uberFee)}
 
 Execution Time: ${Duration.ofSeconds(allSeconds)}
 """)
