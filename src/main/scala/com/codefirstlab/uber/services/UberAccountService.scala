@@ -1,65 +1,28 @@
+package com.codefirstlab.uber.services
 
 import java.time.{Duration, LocalDateTime, ZoneOffset}
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.time.format.DateTimeFormatter
 import java.util.logging.Level
 
-import com.gargoylesoftware.htmlunit.html._
+import com.codefirstlab.uber.models.Trip
 import com.gargoylesoftware.htmlunit.{BrowserVersion, WebClient}
+import com.gargoylesoftware.htmlunit.html.{HtmlButton, _}
 import org.apache.commons.logging.LogFactory
 
 import scala.collection.mutable.ArrayBuffer
-import scala.math.Ordering
 import scala.util.Try
 
 /**
- * @author Jaime Rojas
- * @date 5/11/2016
- */
-case class Trip(time: LocalDateTime, driver: String, duration: Duration, kilometers: Double, fare: Double, status: String)
-
-object Main {
+  * Created by jaime on 5/15/16.
+  */
+class UberAccountService(val email: String, val password: String) {
   val inputDateFormatter =  DateTimeFormatter.ofPattern("yyyyMMdd'T'HH:mm:ss'TZ'z")
   val uberDateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy h[:mm]a z")
 
-  def main(args: Array[String]) {
-    val start = LocalDateTime.now()
-    val uberPartnerHomePage = enterUberPartner(args(0), args(1))
-    val fromDate = LocalDateTime.from(inputDateFormatter.parse(args(2)))
-    val allTrips = loadTrips(uberPartnerHomePage, fromDate)
-
-    implicit def localDateTimeComparator = Ordering.fromLessThan[LocalDateTime]((d1, d2) => d1.compareTo(d2) < 0)
-    implicit def timeOrdering = Ordering.by((_: Trip).time)
-
-    val avgKilometers = average(allTrips.map(t => t.kilometers))
-    val avgDuration = Duration.ofSeconds(average(allTrips.map(t => t.duration.getSeconds)).toLong)
-    val avgFare = average(allTrips.map(t => t.fare))
-
-    val totalKilometers = allTrips.foldRight(0.0)((t, sum) => t.kilometers + sum)
-    val totalDuration = Duration.ofSeconds(allTrips.foldRight(0L)((t, sum) => t.duration.getSeconds + sum))
-    val totalFare = allTrips.foldRight(0.0)((t, sum) => t.fare + sum)
-
-    val times = allTrips.map(_.time)
-    println(
-raw"""
-trips: ${allTrips.size},
-fromDateTime: $fromDate,
-firstTrip: ${Try(times.min).getOrElse("")},
-lastTrip: ${Try(times.max).getOrElse("")},
-avgKilometers: $avgKilometers,
-totalKilometers: $totalKilometers,
-avgDuration: $avgDuration,
-totalDuration: $totalDuration.,
-avgFare: DOP $avgFare,
-totalFare: DOP $totalFare
-""")
-    val end = LocalDateTime.now()
-
-    val allSeconds = ChronoUnit.SECONDS.between(start, end)
-    val minutes = allSeconds / 60
-    val seconds = allSeconds % 60
-
-    println(s"execution time: ${minutes}m ${seconds}s")
+  def allTrips(from: LocalDateTime): Seq[Trip] = {
+    val uberPartnerHomePage = enterUberPartner(email, password)
+    loadTrips(uberPartnerHomePage, from)
   }
 
   def loadTrips(uberPartnerPage: HtmlPage, from: LocalDateTime): Seq[Trip] = {
